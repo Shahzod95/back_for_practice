@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: expressjs-app
+    env: node
+    region: oregon  # Yoki Render'dagi yaqin regioningizni tanlang
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free  # Yoki `starter` yoki boshqa pullik reja
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+    healthCheckPath: /
