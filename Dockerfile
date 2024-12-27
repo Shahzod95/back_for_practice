@@ -11,6 +11,9 @@ RUN npm install
 # Loyiha kodlarini ko'chirish
 COPY . .
 
+# Paketlarni o'rnatish va bcrypt'ni kompilyatsiya qilish
+RUN npm install --build-from-source
+
 # Port ochish
 EXPOSE 3000
 

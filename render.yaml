@@ -2,14 +2,12 @@ services:
   - type: web
     name: expressjs-app
     env: node
-    region: oregon  # Yoki Render'dagi yaqin regioningizni tanlang
-    buildCommand: npm install
+    region: oregon  # Yoki yaqin regioningizni tanlang
+    buildCommand: npm install --build-from-source
     startCommand: npm start
-    plan: free  # Yoki `starter` yoki boshqa pullik reja
+    plan: free  # Yoki `starter` yoki pullik reja
     autoDeploy: true
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3000
     healthCheckPath: /
+    disk:
+      mountPath: /data
+      sizeGb: 1  # SQLite ma’lumotlar uchun saqlash joyi
