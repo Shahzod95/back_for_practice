@@ -1,46 +1,52 @@
-const bcrypt = require('bcrypt');
+const argon2 = require('argon2');
 const jwt = require('../utils/jwtHelper');
 const { createUser, findUserByUsername } = require('../models/userModel');
 
-exports.register = (req, res) => {
+// Ro'yxatdan o'tish
+exports.register = async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ message: 'Iltimos, foydalanuvchi nomi va parolni kiriting!' });
   }
 
-  findUserByUsername(username, (err, user) => {
-    if (err) return res.status(500).json({ message: 'Server xatosi', error: err.message });
-    if (user) return res.status(400).json({ message: 'Bunday foydalanuvchi allaqachon mavjud!' });
+  try {
+    const existingUser = await findUserByUsername(username);
+    if (existingUser) {
+      return res.status(400).json({ message: 'Bunday foydalanuvchi allaqachon mavjud!' });
+    }
 
-    bcrypt.hash(password, 10, (err, hashedPassword) => {
-      if (err) return res.status(500).json({ message: 'Server xatosi', error: err.message });
+    const hashedPassword = await argon2.hash(password);
+    const newUser = await createUser(username, hashedPassword);
 
-      createUser(username, hashedPassword, (err, newUser) => {
-        if (err) return res.status(500).json({ message: 'Server xatosi', error: err.message });
-        res.status(201).json({ message: 'Foydalanuvchi muvaffaqiyatli ro\'yxatdan o\'tdi!', user: newUser });
-      });
-    });
-  });
+    res.status(201).json({ message: "Foydalanuvchi muvaffaqiyatli ro'yxatdan o'tdi!", user: newUser });
+  } catch (err) {
+    res.status(500).json({ message: 'Server xatosi', error: err.message });
+  }
 };
 
-exports.login = (req, res) => {
+// Tizimga kirish
+exports.login = async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ message: 'Iltimos, foydalanuvchi nomi va parolni kiriting!' });
   }
 
-  findUserByUsername(username, (err, user) => {
-    if (err) return res.status(500).json({ message: 'Server xatosi', error: err.message });
-    if (!user) return res.status(400).json({ message: 'Foydalanuvchi topilmadi!' });
+  try {
+    const user = await findUserByUsername(username);
+    if (!user) {
+      return res.status(400).json({ message: 'Foydalanuvchi topilmadi!' });
+    }
 
-    bcrypt.compare(password, user.password, (err, isValid) => {
-      if (err) return res.status(500).json({ message: 'Server xatosi', error: err.message });
-      if (!isValid) return res.status(400).json({ message: 'Noto\'g\'ri parol!' });
+    const isValid = await argon2.verify(user.password, password);
+    if (!isValid) {
+      return res.status(400).json({ message: "Noto'g'ri parol!" });
+    }
 
-      const token = jwt.generateToken(user);
-      res.status(200).json({ message: 'Tizimga muvaffaqiyatli kirdingiz!', token });
-    });
-  });
+    const token = jwt.generateToken(user);
+    res.status(200).json({ message: 'Tizimga muvaffaqiyatli kirdingiz!', token });
+  } catch (err) {
+    res.status(500).json({ message: 'Server xatosi', error: err.message });
+  }
 };
